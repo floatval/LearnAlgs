@@ -5,9 +5,11 @@ package BinarySearch
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	strconv2 "strconv"
+	"strings"
 )
 
 func rank(key int, arr []int) int {
@@ -30,42 +32,73 @@ func rank(key int, arr []int) int {
 }
 
 func Output() {
-	// TODO 将从命令行获取白名单改为从文本文件中获取白名单.
-	// 通过命令行获取白名单并排序
-	whiteListStr := os.Args[1:]
-	sort.Strings(whiteListStr)
+	files := os.Args[1:]
+	whiteList, blackList := readfile(files)
+	for _, black := range blackList {
+		if rank(black, whiteList) < 0 {
+			//fmt.Println("该选项不在白名单中: %d", black)
 
-	// 将 []string 转化为 []int
-	whiteList, err := sliceAtoi(whiteListStr)
-	if err != nil {
-		fmt.Println(whiteList, err)
-	}
-
-	// 判断命令行是否传入参数
-	if len(whiteListStr) > 0 {
-		var key int
-		fmt.Println("请输入要查询的键值")
-		fmt.Scanln(&key)
-		if rank(key, whiteList) < 0 {
-			fmt.Printf("输入的key值: %d,不在白名单中", key)
-		} else {
-			fmt.Printf("输入的 key 值: %d,在白名单中", key)
 		}
 	}
 }
 
-func sliceAtoi(sa []string) ([]int, error) {
-	// 将 []string 转化为 []int
-	// TODO 将从命令行接收白名单改为从一个文本中接收白名单
-
+// 将 []string 转化为 []int
+func sliceatoi(sa []string) ([]int, error) {
 	// 初始化一个存放所有白名单的切片
 	si := make([]int, 0, len(sa))
 	for _, nu := range sa {
 		num, err := strconv2.Atoi(nu)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v", err)
 			return si, err
 		}
 		si = append(si, num)
 	}
 	return si, nil
+}
+
+// 从文件中读取数据
+func readfile(files []string) ([]int, []int) {
+	//　未从命令行中传递文件名
+	var whitelist, blacklist []int
+	var errw, errb error
+	if len(files) == 0 {
+		fmt.Println("请输入需要读取的文件名")
+		os.Exit(1)
+	} else {
+		whitelistfile := files[0]
+		blacklistfile := files[1]
+		fmt.Println(whitelistfile, blacklistfile)
+		// 读取文件
+		f, err := ioutil.ReadFile(whitelistfile)
+		f1, err1 := ioutil.ReadFile(blacklistfile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "read whitefile: %v\n", err)
+		} else if err1 != nil {
+			fmt.Fprintf(os.Stderr, "read blackfile %v\n", err1)
+		} else {
+			// if can read blacklistfile and whitelistfile then convert them to []int
+			// convert byte to string
+			whiteFile := string(f)
+			// convert byte to []string And remove whitespace and \n
+			strArry := strings.Fields(whiteFile)
+			// sorted []string
+			sort.Strings(strArry)
+			//  convert []string to []int
+			whitelist, errw = sliceatoi(strArry)
+			if errw != nil {
+				fmt.Fprintf(os.Stderr, "convert file whitelist %v\n", err)
+			}
+			// read blacklist file
+			blackfile := string(f1)
+			strarry1 := strings.Fields(blackfile)
+			// sorted strarry1
+			sort.Strings(strarry1)
+			blacklist, errb = sliceatoi(strarry1)
+			if errb != nil {
+				fmt.Fprintf(os.Stderr, "convert  blacklist:%v\n", err1)
+			}
+		}
+	}
+	return whitelist, blacklist
 }
